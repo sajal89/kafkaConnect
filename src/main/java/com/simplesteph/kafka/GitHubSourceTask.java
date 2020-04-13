@@ -4,6 +4,7 @@ import com.mashape.unirest.http.JsonNode;
 import com.simplesteph.kafka.model.Commit;
 import com.simplesteph.kafka.model.Issue;
 import com.simplesteph.kafka.model.PullRequest;
+import com.simplesteph.kafka.model.Repository;
 import com.simplesteph.kafka.model.User;
 import com.simplesteph.kafka.utils.DateUtils;
 import org.apache.kafka.connect.data.Struct;
@@ -24,9 +25,8 @@ public class GitHubSourceTask extends SourceTask {
     public GitHubSourceConnectorConfig config;
 
     protected Instant nextQuerySince;
-    protected Integer lastIssueNumber;
-    protected Integer nextPageToVisit = 1;
-    protected Instant lastUpdatedAt;
+    public static List<String> ownerLogins=new ArrayList<String>();
+    public static List<Repository> repos=new ArrayList<Repository>();
 
     GitHubAPIHttpClient gitHubHttpAPIClient;
     BuildRecord buildRecord;
@@ -40,31 +40,27 @@ public class GitHubSourceTask extends SourceTask {
     public void start(Map<String, String> map) {
         //Do things here that are required to start your task. This could be open a connection to a database, etc.
         config = new GitHubSourceConnectorConfig(map);
-        initializeLastVariables();
         gitHubHttpAPIClient = new GitHubAPIHttpClient(config);
+        initializeLastVariables();
         buildRecord = new BuildRecord(config);
         
     }
 
     private void initializeLastVariables(){
+    	//adding User
+    	ownerLogins.add("sajal89");
+    	ownerLogins.add("soumikroy80");
+    	populateRepos();
+    	
         Map<String, Object> lastSourceOffset = null;
         lastSourceOffset = context.offsetStorageReader().offset(sourcePartition());
         if( lastSourceOffset == null){
             // we haven't fetched anything yet, so we initialize to 7 days ago
             nextQuerySince = config.getSince();
-            lastIssueNumber = -1;
         } else {
             Object updatedAt = lastSourceOffset.get(UPDATED_AT_FIELD);
-            Object issueNumber = lastSourceOffset.get(NUMBER_FIELD);
-            Object nextPage = lastSourceOffset.get(NEXT_PAGE_FIELD);
             if(updatedAt != null && (updatedAt instanceof String)){
                 nextQuerySince = Instant.parse((String) updatedAt);
-            }
-            if(issueNumber != null && (issueNumber instanceof String)){
-                lastIssueNumber = Integer.valueOf((String) issueNumber);
-            }
-            if (nextPage != null && (nextPage instanceof String)){
-                nextPageToVisit = Integer.valueOf((String) nextPage);
             }
         }
     }
@@ -81,80 +77,59 @@ public class GitHubSourceTask extends SourceTask {
     	int i = 0;
     	final ArrayList<SourceRecord> records = new ArrayList<>();
     	String requestUrl="";
-    	switch(config.getNodeConfig()) {
-    	case "ISSUE":
+    	JsonNode jsonResponse=null;
+    	
+    	
+    	for(Repository repo: repos) {
+    		// "ISSUE":
     		requestUrl= String.format(
-    				"https://api.github.com/repos/%s/%s/issues?page=%s&per_page=%s&since=%s&state=all&direction=asc&sort=updated",
-    				config.getOwnerConfig(),
-    				config.getRepoConfig(),
-    				nextPageToVisit,
-    				config.getBatchSize(),
+    				"https://api.github.com/repos/%s/%s/issues?since=%s&state=all&direction=asc&sort=updated",
+    				repo.getRepoOwner(),
+    				repo.getRepoName(),
     				nextQuerySince.toString());
-    		JsonNode jsonResponse = gitHubHttpAPIClient.getNextItems(nextPageToVisit, nextQuerySince, requestUrl);
+    		jsonResponse = gitHubHttpAPIClient.getNextItems(requestUrl);
     		for (Object obj : jsonResponse.getArray()) {
     			Issue issue = Issue.fromJson((JSONObject) obj);
+    			issue.setOwner(repo.getRepoOwner());
+    			issue.setRepo(repo.getRepoName());
     			SourceRecord sourceRecord = new SourceRecord(
     					sourcePartition(),
-    					sourceOffset(issue.getUpdatedAt()),
+    					sourceOffset(),
     					config.getTopic(),
     					null, // partition will be inferred by the framework
     					SCHEMA_ISSUE,
     					buildRecord.buildRecordValue(issue)
     					);
-    			lastUpdatedAt = issue.getUpdatedAt();
     			records.add(sourceRecord);
     			i += 1;
     		}
-    		break;
-    	case "USER":
-    		requestUrl= String.format(
-    				"https://api.github.com/users/%s",
-    				config.getOwnerConfig());
-    		jsonResponse  = gitHubHttpAPIClient.getNextItems(nextPageToVisit, nextQuerySince, requestUrl);
-    		User user = User.fromSCMJson(jsonResponse.getObject());
-    		SourceRecord sourceRecord = new SourceRecord(
-    				sourcePartition(),
-    				sourceOffset(user.getUpdatedAt()),
-    				config.getTopic(),
-    				null, // partition will be inferred by the framework
-    				SCHEMA_USER,
-    				buildRecord.buildRecordValue(user));
-    		lastUpdatedAt = user.getUpdatedAt();
-    		records.add(sourceRecord);
-    		i=1;
-    		break;
-    	case "COMMIT":
+    		// "COMMIT":
     		requestUrl= String.format(
     				"https://api.github.com/repos/%s/%s/commits?since=%s",
-    				config.getOwnerConfig(),
-    				config.getRepoConfig(),
+    				repo.getRepoOwner(),
+    				repo.getRepoName(),
     				nextQuerySince.toString());
-    		jsonResponse = gitHubHttpAPIClient.getNextItems(nextPageToVisit, nextQuerySince, requestUrl);
+    		jsonResponse = gitHubHttpAPIClient.getNextItems(requestUrl);
     		for (Object obj : jsonResponse.getArray()) {
     			Commit commit = Commit.fromJson((JSONObject) obj);
-    			sourceRecord = new SourceRecord(
+    			commit.setOwner(repo.getRepoOwner());
+    			commit.setRepo(repo.getRepoName());
+    			SourceRecord sourceRecord = new SourceRecord(
     					sourcePartition(),
-    					sourceOffset(commit.getCommittedAt()),
+    					sourceOffset(),
     					config.getTopic(),
     					null, // partition will be inferred by the framework
     					SCHEMA_COMMIT,
     					buildRecord.buildRecordValue(commit));
-    			lastUpdatedAt = commit.getCommittedAt();
     			records.add(sourceRecord);
     			i += 1;
     		}
-    		break;	
 
     	}
 
-    	if (i > 0) log.info(String.format("Fetched %s record(s)", i));
-    	if (i == 100){
-    		// we have reached a full batch, we need to get the next one
-    		nextPageToVisit += 1;
-    	}
-    	else {
-    		nextQuerySince = lastUpdatedAt.plusSeconds(1);
-    		nextPageToVisit = 1;
+    	if (i > 0) {
+    		log.info(String.format("Fetched %s record(s)", i));
+    		nextQuerySince = Instant.now().plusSeconds(1);
     		gitHubHttpAPIClient.sleep();
     	}
     	return records;
@@ -168,17 +143,37 @@ public class GitHubSourceTask extends SourceTask {
 
     private Map<String, String> sourcePartition() {
         Map<String, String> map = new HashMap<>();
-        map.put(OWNER_FIELD, config.getOwnerConfig());
-        map.put(REPOSITORY_FIELD, config.getRepoConfig());
+        map.put(TYPE_FIELD, "GITHUB");
         return map;
     }
 
-    private Map<String, String> sourceOffset(Instant updatedAt) {
+    private Map<String, String> sourceOffset() {
         Map<String, String> map = new HashMap<>();
-        map.put(UPDATED_AT_FIELD, DateUtils.MaxInstant(updatedAt, nextQuerySince).toString());
-        map.put(NEXT_PAGE_FIELD, nextPageToVisit.toString());
+        map.put(UPDATED_AT_FIELD, Instant.now().toString());
         return map;
     }
+    
+    public void populateRepos() {
+    	try {
+    		for(String owner: ownerLogins) {
+    			String requestUrl= String.format("https://api.github.com/users/%s/repos",owner);
+    			JsonNode jsonResponse;
+    			jsonResponse = gitHubHttpAPIClient.getNextItems(requestUrl);
+    			for (Object obj : jsonResponse.getArray()) {
+    			Repository repo=Repository.formJson((JSONObject) obj);
+    			repo.setRepoOwner(owner);
+    			repos.add(repo);
+    			}
+
+    		}
+    	} catch (InterruptedException e) {
+    		e.printStackTrace();
+    		log.error(e.getMessage());
+    	}
+    	
+    }
+
+
 
 
 }

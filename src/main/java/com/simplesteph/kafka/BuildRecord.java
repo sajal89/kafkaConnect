@@ -23,14 +23,14 @@ public class BuildRecord {
     public Struct buildRecordValue(Issue issue){
         // Issue top level fields
         Struct valueStruct = new Struct(SCHEMA_ISSUE)
-                .put(TYPE_FIELD, "Issue")
+                .put(TYPE_FIELD, "ISSUE")
                 .put(ID_FIELD, issue.getId())
                 .put(TITLE_FIELD, issue.getTitle())
                 .put(STATE_FIELD, issue.getState())
                 .put(BODY_FIELD, issue.getBody())
                 .put(USER_FIELD, issue.getUser().getLogin()) // mandatory
-                .put(OWNER_FIELD, config.getOwnerConfig())
-                .put(REPOSITORY_FIELD, config.getRepoConfig())
+                .put(OWNER_FIELD, issue.getOwner())
+                .put(REPOSITORY_FIELD, issue.getRepo())
                 .put(CREATED_AT_FIELD, Date.from(issue.getCreatedAt()))
                 .put(UPDATED_AT_FIELD, Date.from(issue.getUpdatedAt()))
                 .put(NUMBER_FIELD, issue.getNumber());
@@ -63,10 +63,12 @@ public class BuildRecord {
     //build committer record value
     public Object buildRecordValue(Commit commit) {
     	Struct valueStruct = new Struct(SCHEMA_COMMIT)
-    			.put(TYPE_FIELD, "Commit")
+    			.put(TYPE_FIELD, "COMMIT")
 //    			.put(USER_LOGIN_FIELD, commit.getCommitterLogin())
-    			.put(COMMITTED_AT_FIELD, Date.from(commit.getCommittedAt()));
-
+    			.put(COMMITTED_AT_FIELD, Date.from(commit.getCommittedAt()))
+    			.put(OWNER_FIELD, commit.getOwner())
+    	        .put(REPOSITORY_FIELD, commit.getRepo());
+    	
     	if(commit.getCommitterEmail() != null)
     		valueStruct.put(USER_EMAIL_FIELD, commit.getCommitterEmail());
     	if(commit.getCommitterName()!= null)

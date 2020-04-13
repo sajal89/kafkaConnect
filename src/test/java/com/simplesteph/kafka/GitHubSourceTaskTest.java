@@ -35,12 +35,11 @@ public class GitHubSourceTaskTest {
     @Test
     public void test() throws UnirestException {
         gitHubSourceTask.config = new GitHubSourceConnectorConfig(initialConfig());
-        gitHubSourceTask.nextPageToVisit = 1;
         gitHubSourceTask.nextQuerySince = Instant.parse("2017-01-01T00:00:00Z");
         gitHubSourceTask.gitHubHttpAPIClient = new GitHubAPIHttpClient(gitHubSourceTask.config);
-        String url = gitHubSourceTask.gitHubHttpAPIClient.constructUrl(gitHubSourceTask.nextPageToVisit, gitHubSourceTask.nextQuerySince);
+        String url = "https://api.github.com/repos/soumikroy80/microservicepoc/issues?since=2020-02-29T00:00:00Z&state=all&direction=asc&sort=updated";
         System.out.println(url);
-        HttpResponse<JsonNode> httpResponse = gitHubSourceTask.gitHubHttpAPIClient.getNextItemsAPI(gitHubSourceTask.nextPageToVisit, gitHubSourceTask.nextQuerySince, url);
+        HttpResponse<JsonNode> httpResponse = gitHubSourceTask.gitHubHttpAPIClient.getNextItemsAPI(url);
         if (httpResponse.getStatus() != 403) {
             assertEquals(200, httpResponse.getStatus());
             Set<String> headers = httpResponse.getHeaders().keySet();
@@ -48,12 +47,9 @@ public class GitHubSourceTaskTest {
 //            assertTrue(headers.contains("X-RateLimit-Limit"));
 //            assertTrue(headers.contains("X-RateLimit-Remaining"));
 //            assertTrue(headers.contains("X-RateLimit-Reset"));
-            assertEquals(batchSize.intValue(), httpResponse.getBody().getArray().length());
             JSONObject jsonObject = (JSONObject) httpResponse.getBody().getArray().get(0);
             Issue issue = Issue.fromJson(jsonObject);
             assertNotNull(issue);
-            assertNotNull(issue.getNumber());
-            assertEquals(2072, issue.getNumber().intValue());
         }
     }
 }

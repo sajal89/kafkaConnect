@@ -35,6 +35,8 @@ public class Issue {
     private Instant updatedAt;
     private List<Assignee> assignees = null;
     private Map<String, Object> additionalProperties = new HashMap<String, Object>();
+    private String owner;
+    private String repo;
 
     /**
      * No args constructor for use in serialization
@@ -94,7 +96,25 @@ public class Issue {
         this.assignees = assignees;
     }
 
-    public Integer getId() {
+    
+    
+    public String getOwner() {
+		return owner;
+	}
+
+	public void setOwner(String owner) {
+		this.owner = owner;
+	}
+
+	public String getRepo() {
+		return repo;
+	}
+
+	public void setRepo(String repo) {
+		this.repo = repo;
+	}
+
+	public Integer getId() {
         return id;
     }
 

@@ -39,6 +39,9 @@ public class GitHubSchemas {
     public static final String COMMIT_NAME_FIELD = "name";
     public static final String COMMIT_MESSAGE_FIELD = "message";
     public static final String COMMITTED_AT_FIELD = "date";
+    public static final String REPO_DESC_FIELD = "description";
+    
+    
 
     // PR fields
     public static final String PR_FIELD = "pull_request";
@@ -87,10 +90,11 @@ public class GitHubSchemas {
     public static final Schema SCHEMA_COMMIT = SchemaBuilder.struct().name(SCHEMA_VALUE_COMMIT)
             .version(2)
             .field(TYPE_FIELD, Schema.STRING_SCHEMA)
-//            .field(USER_LOGIN_FIELD, Schema.STRING_SCHEMA)
             .field(USER_EMAIL_FIELD, Schema.OPTIONAL_STRING_SCHEMA)
             .field(COMMIT_NAME_FIELD, Schema.OPTIONAL_STRING_SCHEMA)
             .field(COMMIT_MESSAGE_FIELD, Schema.OPTIONAL_STRING_SCHEMA)
             .field(COMMITTED_AT_FIELD, Timestamp.SCHEMA)
+            .field(REPOSITORY_FIELD, Schema.STRING_SCHEMA) // mandatory
+            .field(OWNER_FIELD, Schema.STRING_SCHEMA)
             .build();
 }

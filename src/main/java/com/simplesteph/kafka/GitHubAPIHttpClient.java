@@ -31,11 +31,11 @@ public class GitHubAPIHttpClient {
         this.config = config;
     }
 
-    protected JsonNode getNextItems(Integer page, Instant since, String url) throws InterruptedException {
+    protected JsonNode getNextItems( String url) throws InterruptedException {
 
         HttpResponse<JsonNode> jsonResponse;
         try {
-            jsonResponse = getNextItemsAPI(page, since, url);
+            jsonResponse = getNextItemsAPI(url);
 
             // deal with headers in any case
             Headers headers = jsonResponse.getHeaders();
@@ -57,16 +57,15 @@ public class GitHubAPIHttpClient {
                     long sleepTime = XRateReset - Instant.now().getEpochSecond();
                     log.info(String.format("Sleeping for %s seconds", sleepTime ));
                     Thread.sleep(1000 * sleepTime);
-                    return getNextItems(page, since, url);
+                    return getNextItems( url);
                 default:
-                    log.error(constructUrl(page, since));
                     log.error(String.valueOf(jsonResponse.getStatus()));
                     log.error(jsonResponse.getBody().toString());
                     log.error(jsonResponse.getHeaders().toString());
                     log.error("Unknown error: Sleeping 5 seconds " +
                             "before re-trying");
                     Thread.sleep(5000L);
-                    return getNextItems(page, since, url);
+                    return getNextItems(url);
             }
         } catch (UnirestException e) {
             e.printStackTrace();
@@ -75,7 +74,7 @@ public class GitHubAPIHttpClient {
         }
     }
 
-    protected HttpResponse<JsonNode> getNextItemsAPI(Integer page, Instant since, String url) throws UnirestException {
+    protected HttpResponse<JsonNode> getNextItemsAPI( String url) throws UnirestException {
         GetRequest unirest = Unirest.get(url);
         if (!config.getAuthUsername().isEmpty() && !config.getAuthPassword().isEmpty() ){
             unirest = unirest.basicAuth(config.getAuthUsername(), config.getAuthPassword());
