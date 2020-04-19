@@ -88,7 +88,7 @@ public class GitHubSchemas {
     
  // Commit Schema
     public static final Schema SCHEMA_COMMIT = SchemaBuilder.struct().name(SCHEMA_VALUE_COMMIT)
-            .version(2)
+            .version(1)
             .field(TYPE_FIELD, Schema.STRING_SCHEMA)
             .field(USER_EMAIL_FIELD, Schema.OPTIONAL_STRING_SCHEMA)
             .field(COMMIT_NAME_FIELD, Schema.OPTIONAL_STRING_SCHEMA)

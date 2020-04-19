@@ -64,7 +64,6 @@ public class BuildRecord {
     public Object buildRecordValue(Commit commit) {
     	Struct valueStruct = new Struct(SCHEMA_COMMIT)
     			.put(TYPE_FIELD, "COMMIT")
-//    			.put(USER_LOGIN_FIELD, commit.getCommitterLogin())
     			.put(COMMITTED_AT_FIELD, Date.from(commit.getCommittedAt()))
     			.put(OWNER_FIELD, commit.getOwner())
     	        .put(REPOSITORY_FIELD, commit.getRepo());
