@@ -103,7 +103,7 @@ public class GitHubSourceTask extends SourceTask {
     			records.add(sourceRecord);
     			i += 1;
     		}
-    		// "COMMIT" Changes 1:
+    		// "COMMIT" Changes 2:
     		requestUrl= String.format(
     				"https://api.github.com/repos/%s/%s/commits?since=%s",
     				repo.getRepoOwner(),
