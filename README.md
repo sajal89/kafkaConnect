@@ -15,6 +15,7 @@ The connector writes to topic that is great candidate to demonstrate *log compac
 It's finally aimed to be an educative example to demonstrate how to write a Source Connector a little less trivial than the `FileStreamSourceConnector` provided in Kafka.
 
 # Contributing
+# Changes 1 for pulse
 
 This connector is not perfect and can be improved, please feel free to submit any PR you deem useful. 
 
