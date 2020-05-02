@@ -16,6 +16,7 @@ It's finally aimed to be an educative example to demonstrate how to write a Sour
 
 # Contributing
 # Pull Request Update for Develope branch by Sajal
+# Changes 1 for pulse
 
 This connector is not perfect and can be improved, please feel free to submit any PR you deem useful. 
 
